@@ -1,0 +1,15 @@
+.DS_Store
+*~
+/.bundle/
+/.yardoc/
+/build/
+/coverage/
+/doc/
+/embedded/
+/gem_graph.png
+/generated/
+/log/
+/pkg/
+/tmp/
+/vendor/bundle/
+\#*\#

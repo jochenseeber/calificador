@@ -1,0 +1,32 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run Example Test",
+            "type": "Ruby",
+            "request": "launch",
+            "cwd": "${workspaceRoot}",
+            "env": {
+                "RUBYLIB": "test"
+            },
+            "args": ["-v"],
+            "useBundler": true,
+            "program": "test/util/core_extensions_test.rb"
+        },
+        {
+            "name": "Run Example Demo",
+            "type": "Ruby",
+            "request": "launch",
+            "cwd": "${workspaceRoot}",
+            "env": {
+                "RUBYLIB": "test"
+            },
+            "args": ["demo/test.md", "-v"],
+            "useBundler": true,
+            "program": "bin/qed"
+        }
+    ]
+}
