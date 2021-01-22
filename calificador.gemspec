@@ -38,7 +38,7 @@ Gem::Specification.new do |spec|
   spec.bindir = "cmd"
   spec.executables = spec.files.filter { |f| File.dirname(f) == "cmd" && File.file?(f) }.map { |f| File.basename(f) }
 
-  spec.add_dependency "docile", "~> 1.3", ">= 1.3.3"
+  spec.add_dependency "docile", "~> 1.3.5"
   spec.add_dependency "minitest", "~> 5.14"
   spec.add_dependency "zeitwerk", "~> 2.3"
 
