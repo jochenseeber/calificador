@@ -3,21 +3,20 @@
 using Calificador::Util::CoreExtensions
 
 module Calificador
-  module Spec
-    class ExamineContext < BasicContext
-      class Dsl < BasicContext::Dsl
-      end
+  module Context
+    class TypeContext < BasicContext
+      def initialize(parent:, subject_key:, description:, overrides: [])
+        raise ArgumentError, "Subject must be a must be a #{BasicObject}" unless subject_key.type <= BasicObject
 
-      def initialize(parent:, subject_key:, description:, overrides: {})
         super(
           parent: parent,
           description: description,
           subject_key: subject_key,
-          overrides: overrides,
+          overrides: overrides
         )
       end
 
-      def create_subject(environment:, subject_key:)
+      def create_subject(environment:)
         subject_key.type
       end
 

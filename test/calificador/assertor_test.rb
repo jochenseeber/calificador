@@ -1,21 +1,27 @@
 # frozen_string_literal: true
 
-require "test_base"
+require "calificador/test_base"
 
 module Calificador
   class AssertorTest < Calificador::Test
-    class DummyTest < Calificador::Test
+    class DummyHandler
+      def assert(condition, message)
+        raise ::Minitest::Assertion, message unless condition
+      end
+
+      def refute(condition, message)
+        assert(!condition, message)
+      end
     end
 
     factory Assertor do
       transient do
-        test_object { DummyTest.new("dummy") }
         negated { false }
         block { -> { 1 } }
       end
 
       init_with do
-        Assertor.new(test: test_object, negated: negated, block: block)
+        Assertor.new(handler: create(DummyHandler), negated: negated, block: block)
       end
     end
 
@@ -31,30 +37,30 @@ module Calificador
       assert { subject.respond_to?(:unknown) }.raises?(MiniTest::Assertion)
     end
 
-    must "raise error if no block given", block: nil do
+    must "raise error if no block given", props { block { nil } } do
       assert { subject.true? }.raises?(StandardError)
     end
 
-    method :not do
+    operation :not do
       must "negate assertor" do
         subject.not == 2
         assert { subject.not.instance_eval { @negated } } == true
       end
     end
 
-    method :identical? do
+    operation :identical? do
       one = String.new("one")
 
-      must "pass if identical", block: -> { one } do
+      must "pass if identical", props { block { -> { one } } } do
         subject.identical?(one)
       end
 
-      must "flunk if not identical", block: -> { one } do
+      must "flunk if not identical", props { block { -> { one } } } do
         assert { subject.identical?(String.new("one")) }.raises?(MiniTest::Assertion)
       end
     end
 
-    method :"==" do
+    operation :"==" do
       must "pass if equal" do
         subject == 1
       end
@@ -64,7 +70,7 @@ module Calificador
       end
     end
 
-    method :"!=" do
+    operation :"!=" do
       must "pass if not equal" do
         subject != 99
       end
@@ -74,8 +80,8 @@ module Calificador
       end
     end
 
-    method :raises? do
-      must "pass if expected exception is thrown", block: -> { raise StandardError } do
+    operation :raises? do
+      must "pass if expected exception is thrown", props { block { -> { raise StandardError } } } do
         subject.raises?(StandardError)
       end
 
@@ -83,7 +89,7 @@ module Calificador
         assert { subject.raises?(StandardError) }.raises?(MiniTest::Assertion)
       end
 
-      must "flunk if other than expected exception is thrown", block: -> { raise StandardError } do
+      must "flunk if other than expected exception is thrown", props { block { -> { raise StandardError } } } do
         assert { subject.raises?(KeyError) }.raises?(MiniTest::Assertion)
       end
 
@@ -91,15 +97,15 @@ module Calificador
         assert { subject.raises? }.raises?(ArgumentError)
       end
 
-      must "raise exception if no block given", block: nil do
+      must "raise exception if no block given", props { block { nil } } do
         assert { subject.raises?(StandardError) }.raises?(ArgumentError)
       end
 
-      must "pass through non StandardError exceptions", block: -> { raise SignalException, "HUP" } do
+      must "pass through non StandardError exceptions", props { block { -> { raise SignalException, "HUP" } } } do
         assert { subject.raises?(StandardError) }.raises?(SignalException)
       end
 
-      must "pass through MiniTest Assertion exception", block: -> { raise MiniTest::Assertion } do
+      must "pass through MiniTest Assertion exception", props { block { -> { raise MiniTest::Assertion } } } do
         assert { subject.raises?(StandardError) }.raises?(MiniTest::Assertion)
       end
     end
@@ -114,8 +120,8 @@ module Calificador
       end
     end
 
-    where "negated", negated: true do
-      method :"==" do
+    where "negated", props { negated { true } } do
+      operation :"==" do
         must "flunk if equal" do
           assert { subject == 1 }.raises?(MiniTest::Assertion)
         end
@@ -125,7 +131,7 @@ module Calificador
         end
       end
 
-      method :"!=" do
+      operation :"!=" do
         must "pass if equal" do
           subject != 1
         end
@@ -134,14 +140,14 @@ module Calificador
           assert { subject != 99 }.raises?(MiniTest::Assertion)
         end
 
-        method :identical? do
-          one = String.new("one")
+        operation :identical? do
+          one = -> { String.new("one") }
 
-          must "flunk if identical", block: -> { one } do
+          must "flunk if identical", props { block { one } } do
             assert { subject.identical?(one) }.raises?(MiniTest::Assertion)
           end
 
-          must "pass if not identical", block: -> { one } do
+          must "pass if not identical", props { block { one } } do
             subject.identical?(String.new("one"))
           end
         end
@@ -150,14 +156,14 @@ module Calificador
           must "flunk if true" do
             assert { subject.positive? }.raises?(MiniTest::Assertion)
           end
-    
+
           must "pass if false" do
             subject.zero?
           end
-        end    
+        end
       end
 
-      must "flunk if expected exception is thrown", block: -> { raise StandardError } do
+      must "flunk if expected exception is thrown", props { block { -> { raise StandardError } } } do
         assert { subject.raises?(StandardError) }.raises?(MiniTest::Assertion)
       end
 
@@ -169,39 +175,5 @@ module Calificador
         subject.raises?(KeyError)
       end
     end
-
-    # with "value", trait: :value do
-    #   must "fail equality check" do
-    #     assert.raises?(MiniTest::Assertion) do
-    #       subject == 99
-    #     end
-    #   end
-
-    #   must "pass inequality check" do
-    #     subject != 99
-    #   end
-
-    #   must "fail inequality check" do
-    #     assert.raises?(MiniTest::Assertion) do
-    #       subject != 1
-    #     end
-    #   end
-
-    #   must "pass negated check" do
-    #     subject.not == 99
-    #   end
-    # end
-
-    # with "block", trait: :block do
-    #   must "pass equality check" do
-    #     subject == 2
-    #   end
-
-    #   must "refute negated equality check" do
-    #     assert.raises?(MiniTest::Assertion) do
-    #       subject.not == 2
-    #     end
-    #   end
-    # end
   end
 end

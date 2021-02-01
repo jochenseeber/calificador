@@ -3,12 +3,9 @@
 using Calificador::Util::CoreExtensions
 
 module Calificador
-  module Spec
-    class ExamineContext < BasicContext
-      class Dsl < BasicContext::Dsl
-      end
-
-      def initialize(parent:, subject_key:, description:, overrides: {})
+  module Context
+    class InstanceContext < BasicContext
+      def initialize(parent:, subject_key:, description:, overrides: [])
         super(
           parent: parent,
           description: description,
@@ -17,8 +14,8 @@ module Calificador
         )
       end
 
-      def create_subject(environment:, subject_key:)
-        environment.create_object(key: subject_key)
+      def create_subject(environment:)
+        environment.create_object(key: environment.subject_key)
       end
 
       def subtree_root?

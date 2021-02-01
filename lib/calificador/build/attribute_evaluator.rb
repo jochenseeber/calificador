@@ -7,52 +7,52 @@ module Calificador
     class AttributeEvaluator
       EVALUATING = Object.new.freeze
 
-      class Proxy
-        def initialize(delegate:)
-          @delegate = delegate
+      class Proxy < Util::ProxyObject
+        def initialize(evaluator:)
+          super()
+
+          @evaluator = evaluator
+          @environment_proxy = evaluator.environment.proxy
         end
 
-        def create(type, trait = nil)
-          key = Key[type, trait]
-          @delegate.create_object(key: key)
+        protected
+
+        def __respond_to_missing?(name:, include_all:)
+          @evaluator.attribute?(name: name) || @environment_proxy.respond_to?(name)
         end
 
-        def respond_to_missing?(method, include_all)
-          @delegate.attribute?(name: method) ? true : super
-        end
-
-        def method_missing(method, *arguments, &block)
-          if @delegate.attribute?(name: method)
+        def __method_missing(name:, arguments:, keywords:, block:)
+          if @evaluator.attribute?(name: name)
             raise ArgumentError, "Getter must not be called with arguments" unless arguments.empty?
 
-            @delegate.value(name: method)
+            @evaluator.value(name: name)
           else
-            super
+            @environment_proxy.send(name, *arguments, **keywords, &block)
           end
         end
       end
 
-      attr_reader :attributes, :values
+      attr_reader :attributes, :values, :environment
 
-      def initialize(context:)
-        @context = context
+      def initialize(environment:)
+        @environment = environment
         @attributes = {}
         @values = {}
-        @proxy = Proxy.new(delegate: self)
+        @proxy = Proxy.new(evaluator: self)
       end
 
-      def create_object(key:)
-        @context.create_object(key: key)
-      end
-
-      def add_values(values)
-        @values.merge!(values)
+      def add_attribute(attribute)
+        @attributes[attribute.name] = attribute
       end
 
       def add_attributes(attributes)
         attributes.each do |attribute|
-          @attributes[attribute.name] = attribute
+          add_attribute(attribute)
         end
+      end
+
+      def add_values(values)
+        @values.merge!(values)
       end
 
       def value(name:)
@@ -73,9 +73,11 @@ module Calificador
         result
       end
 
-      def evaluate(*arguments, **options, &block)
-        block.invoke_with_target(@proxy, *arguments, **options)
+      def evaluate(*arguments, &block)
+        @proxy.instance_exec(*arguments, &block)
       end
+
+      ruby2_keywords :evaluate
 
       def attribute?(name:)
         @attributes.key?(name)

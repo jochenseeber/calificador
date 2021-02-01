@@ -1,4 +1,4 @@
-## What is it?
+# What is it?
 
 A small Gem that lets you write concise and readable unit tests. It is heavily inspired by [Minitest], [Factory Bot], and [Assertive Expressive] but tries to boil everything down to be as concise as possible:
 
@@ -6,12 +6,18 @@ A small Gem that lets you write concise and readable unit tests. It is heavily i
     module ReadMe
       require "calificador"
 
-      # Define a test class
+      # Define class to test
       class HighTea
         attr_accessor :scones, :posh
 
+        def initialize(scones:)
+          raise ArgumentError, "Cannot have a negative amount of scones" if scones.negative?
+
+          @scones = scones
+        end
+
         def eat_scone
-          raise "Out of scones" if scones == 0
+          raise "Out of scones" if scones.zero?
 
           @scones -= 1
         end
@@ -27,37 +33,50 @@ A small Gem that lets you write concise and readable unit tests. It is heavily i
 
         # Define a factory for the test subject
         factory HighTea do
-          scones { 2 }
+          # Set properties on the created object
           posh { false }
 
-          # Use raits to define variants of your test subject
+          # Define transient properties that will not be set automatically
+          transient do
+            # Constructor arguments are automatically set from properties
+            scones { 2 }
+          end
+
+          # Use traits to define variants of your test subject
           trait :style do
             posh { true }
           end
         end
 
-        # Define test method
-        must "have tea and scones" do
-          # Write assertions using plain Ruby methods instead of spec DSL methods
-          refute { subject.tea }.nil?
-          assert { subject.scones } > 0
+        # Test class methods
+        type do
+          operation :new do
+            must "set a default amount of scones" do
+              # Write assertions using plain Ruby methods instead of spec DSL methods
+              assert { subject.scones } > 0
+            end
+
+            must "provide an instance that has tea" do
+              refute { subject.tea }.nil?
+            end
+          end
         end
 
-        # Get nice test names. This one will be called "HighTea must have me let a scone"
+        # Get nice test names. This one will be called "HighTea must let me have a scone"
         must "let me have a scone" do
           count = subject.scones
           subject.eat_scone
           assert { subject.scones } == count - 1
         end
 
-        # Adjust test subject using traits or properties for minor variations
-        must "complain if out of scones", scones: 0 do
+        # Modify test subject using traits or properties for minor variations
+        must "complain if out of scones", props { scones { 0 } } do
           assert { subject.eat_scone }.raises?(StandardError)
         end
 
         # Create subcontexts for variations of the test subject using traits and properties
         with :style do
-          # Still nice test names. This one is "HighTea with style should have expensive tea"
+          # Still nice test names. This one is "HighTea with style must have expensive tea"
           must "have expensive tea" do
             assert { subject.tea }.include?("First Flush")
           end
@@ -79,8 +98,8 @@ Calificador is an experiment in getting rid of as much mental load, boilerplate 
 
 Only a handful of DSL methods are required:
 
-* Test structure: examine, must, where/with/without
-* Factory methods: factory, traits
+* Test structure: examine, type, operation, where/with/without, must
+* Factory methods: factory, mock, traits
 * Assertions: assert, refute and raises?
 
 It also tries to keep things simple by avoiding all the special assertion and expectation methods you need to learn for other test frameworks. Instead of having to learn that `include` is the RSpec matcher for `include?`, or Minitest's `assert_match` is used to assert regular expression matches, you can write `refute { something }.include? "value"` or `assert { something }.match %r{pattern}` using Ruby's normal `String#match` method.

@@ -3,62 +3,50 @@
 require "minitest"
 
 module Calificador
-  class Assertor < BasicObject
-    def initialize(test:, negated: false, block: nil)
-      @test = test
+  class Assertor < Util::ProxyObject
+    def initialize(handler:, negated: false, block: nil)
+      @handler = handler
       @negated = negated ? true : false
       @block = block
       @value = MISSING
       @triggered = false
     end
 
-    def respond_to?(method, include_all = false)
-      __value.respond_to?(method, include_all) || super
-    end
-
-    def method_missing(method, *arguments, **options, &block) # rubocop:disable Style/MissingRespondToMissing
-      if __value.respond_to?(method)
-        __check(method: method, arguments: arguments, options: options, &block)
-      else
-        super
-      end
-    end
-
     def ==(other)
       message = ::Kernel.proc do
-        actual = ::Calificador.call_formatter.value(value: __value)
-        expected = ::Calificador.call_formatter.value(value: other)
+        actual = ::Calificador.call_formatter.format_value(value: __value)
+        expected = ::Calificador.call_formatter.format_value(value: other)
 
         "Expected #{actual} (#{__value.class}) to#{@negated ? " not" : ""} be equal to #{expected} (#{other.class})"
       end
 
-      __check(method: :"==", message: message, arguments: [other])
+      __check(name: :"==", message: message, arguments: [other])
     end
 
     def !=(other)
       message = ::Kernel.proc do
-        actual = ::Calificador.call_formatter.value(value: __value)
-        expected = ::Calificador.call_formatter.value(value: other)
+        actual = ::Calificador.call_formatter.format_value(value: __value)
+        expected = ::Calificador.call_formatter.format_value(value: other)
 
         "Expected #{actual} (#{__value.class})  to#{@negated ? "" : " not"} be equal to #{expected} (#{other.class})"
       end
 
-      __check(method: :"!=", message: message, arguments: [other])
+      __check(name: :"!=", message: message, arguments: [other])
     end
 
     def identical?(other)
       message = ::Kernel.proc do
-        actual = ::Calificador.call_formatter.value(value: __value)
-        expected = ::Calificador.call_formatter.value(value: other)
+        actual = ::Calificador.call_formatter.format_value(value: __value)
+        expected = ::Calificador.call_formatter.format_value(value: other)
 
         "Expected #{actual} (#{__value.class}) to#{@negated ? " not" : ""} be identical to #{expected} (#{other.class})"
       end
 
-      __check(method: :"equal?", message: message, arguments: [other])
+      __check(name: :"equal?", message: message, arguments: [other])
     end
 
     def not
-      Assertor.new(test: @test, negated: !@negated, block: @block)
+      Assertor.new(handler: @handler, negated: !@negated, block: @block)
     end
 
     def raises?(*exception_classes, &block)
@@ -70,23 +58,23 @@ module Calificador
       ::Kernel.raise ::ArgumentError, "Exception assert must have a block" if block.nil?
 
       message = ::Kernel.proc do
-        actual = ::Calificador.call_formatter.value(value: @block)
+        actual = ::Calificador.call_formatter.format_value(value: @block)
         "Expected #{actual} (#{@block}) to#{@negated ? " not" : ""} raise #{exception_classes.join(", ")}"
       end
 
       begin
         result = block.call
 
-        @test.assert(@negated, message)
+        __assert(@negated, message: message)
 
         result
       rescue *exception_classes => e
-        @test.refute(@negated, @test.exception_details(e, message.call))
+        __refute(@negated, message: __exception_details(e, message: message))
         e
       rescue ::Minitest::Assertion, ::SignalException, ::SystemExit
         ::Kernel.raise
       rescue ::Exception => e # rubocop:disable Lint/RescueException
-        @test.assert(@negated, @test.exception_details(e, message.call))
+        __assert(@negated, message: __exception_details(e, message: message))
       end
     end
 
@@ -101,6 +89,18 @@ module Calificador
 
     protected
 
+    def __respond_to_missing?(name:, include_all:)
+      __value.respond_to?(name, false)
+    end
+
+    def __method_missing(name:, arguments:, keywords:, block:)
+      if __value.respond_to?(name)
+        __check(name: name, arguments: arguments, keywords: keywords, &block)
+      else
+        super
+      end
+    end
+
     def __value
       if @value.equal?(MISSING)
         ::Kernel.raise ::StandardError, "No block set for assertion" if @block.nil?
@@ -111,24 +111,53 @@ module Calificador
       @value
     end
 
-    def __check(method:, message: nil, arguments: [], options: {}, &block)
+    def __check(name:, message: nil, arguments: [], keywords: {}, &block)
       @triggered = true
 
-      result = __value.send(method, *arguments, **options, &block)
+      result = begin
+        __value.send(name, *arguments, **keywords, &block)
+      rescue ::StandardError => e
+        raise ::Minitest::UnexpectedError, e
+      end
 
       message ||= ::Kernel.proc do
-        actual = ::Calificador.call_formatter.value(value: __value)
-        call = ::Calificador.call_formatter.method(method: method, arguments: arguments, options: options)
+        actual = ::Calificador.call_formatter.format_value(value: __value)
+        call = ::Calificador.call_formatter.format_method(name: name, arguments: arguments, keywords: keywords)
         "Expected #{actual} (#{__value.class}) to#{@negated ? " not" : ""} #{call}"
       end
 
       if @negated
-        @test.refute(result, message)
+        __refute(result, message: message)
       else
-        @test.assert(result, message)
+        __assert(result, message: message)
       end
 
       result
+    end
+
+    def __assert(condition, message:)
+      message = message.call if !condition && message.is_a?(::Proc)
+
+      @handler.assert(condition, message)
+    end
+
+    def __refute(condition, message:)
+      message = message.call if condition && message.is_a?(::Proc)
+
+      @handler.refute(condition, message)
+    end
+
+    def __exception_details(exception, message:)
+      message = message.call if message.is_a?(::Proc)
+
+      [
+        message,
+        "Class: <#{exception.class}>",
+        "Message: #{exception.message}",
+        "---Backtrace---",
+        exception.backtrace.map(&:to_s),
+        "---------------",
+      ].flatten.join("\n")
     end
   end
 end

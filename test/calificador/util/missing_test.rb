@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "test_base"
+require "calificador/test_base"
 
 module Calificador
   module Util
@@ -11,25 +11,25 @@ module Calificador
         init_with { Missing.instance_eval { new } }
       end
 
-      must "be singleton" do
-        assert.raises?(NoMethodError) do
-          Missing.new
+      type do
+        must "be singleton" do
+          assert { subject.respond_to?(:new) } == false
         end
       end
 
       must "be frozen" do
-        assert.frozen?
+        assert { subject }.frozen?
       end
 
-      method :mask_nil do
+      operation :mask_nil do
         must "return Nil object" do
-          assert.identical?(Nil.instance)
+          assert { mask_nil }.identical?(Nil.instance)
         end
       end
 
-      method :to_s do
+      operation :to_s do
         must "must return '<missing>'" do
-          assert == "<missing>"
+          assert { to_s } == "<missing>"
         end
       end
     end

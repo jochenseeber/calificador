@@ -5,11 +5,11 @@ require "pp"
 module Calificador
   module Util
     class CallFormatter
-      def method(method:, arguments: [], options: {})
+      def format_method(name:, arguments: [], keywords: {})
         info = ::StringIO.new
-        info << method
+        info << name
 
-        unless arguments.empty? && options.empty?
+        unless arguments.empty? && keywords.empty?
           info << "("
 
           arguments.each_with_index do |argument, i|
@@ -17,7 +17,7 @@ module Calificador
             append_value(value: argument, out: info)
           end
 
-          options.each_with_index do |(name, value), i|
+          keywords.each_with_index do |(name, value), i|
             info << ", " unless i.zero? && arguments.empty?
             info << name << ": "
             append_value(value: value, out: info)
@@ -29,7 +29,7 @@ module Calificador
         info.string
       end
 
-      def value(value:)
+      def format_value(value:)
         append_value(value: value, out: StringIO.new).string
       end
 

@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
-require "zeitwerk"
 require "minitest"
+require "pathname"
+require "zeitwerk"
 
 loader = Zeitwerk::Loader.for_gem
 loader.setup
@@ -11,6 +12,10 @@ module Calificador
   using Calificador::Util::CoreExtensions
 
   MISSING = Util::Missing.instance
+
+  BASE_DIR = Pathname(__FILE__).expand_path.dirname
+
+  METHOD_PATTERN = %r{[[:alpha:]](?:[[:alnum:]]|_)*}.freeze
 
   class << self
     attr_writer :call_formatter
@@ -40,5 +45,5 @@ module Calificador
   end
 end
 
-Minitest::Assertion.prepend(Calificador::Minitest::MinitestPatches::AssertionMethods)
 Class.include(Calificador::Util::ClassMixin)
+Minitest::Assertion.prepend(Calificador::Minitest::MinitestPatches::AssertionMethods)

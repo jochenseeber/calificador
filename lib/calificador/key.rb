@@ -7,22 +7,33 @@ using Calificador::Util::CoreExtensions
 module Calificador
   # Test subject key
   class Key
+    NO_TRAIT = :"<none>"
     DEFAULT_TRAIT = :"<default>"
-    INHERITED_TRAIT = :"<inherited>"
 
     class << self
-      def [](type, trait = DEFAULT_TRAIT)
+      def [](type, trait = NO_TRAIT)
         new(type: type, trait: trait)
       end
     end
 
     attr_reader :type, :trait
 
-    def initialize(type:, trait: DEFAULT_TRAIT)
-      raise ArgumentError, "Illegal trait value #{trait}" if trait == INHERITED_TRAIT
+    def initialize(type:, trait: NO_TRAIT)
+      trait ||= NO_TRAIT
+
+      raise ArgumentError, "Type must be a #{Module}, not '#{type}' (#{type.class})" unless type.is_a?(Module)
+      raise ArgumentError, "Trait must be a #{Symbol}" unless trait.is_a?(Symbol)
 
       @type = type
-      @trait = trait || DEFAULT_TRAIT
+      @trait = trait
+    end
+
+    def trait?
+      @trait != NO_TRAIT && @trait != DEFAULT_TRAIT
+    end
+
+    def default_trait?
+      @trait == DEFAULT_TRAIT
     end
 
     def hash
@@ -30,30 +41,24 @@ module Calificador
     end
 
     def ==(other)
-      (@type == other.type) && (@trait == other.trait)
+      other.is_a?(Key) && (@type == other.type) && (@trait == other.trait)
     end
 
     alias_method :eql?, :==
 
     def to_s
-      trait == DEFAULT_TRAIT ? type.to_s : "#{type} (#{trait})"
+      @trait == NO_TRAIT ? @type.to_s : "#{@type} (#{@trait})"
     end
 
     alias_method :inspect, :to_s
 
     def with(trait)
       case trait
-      when INHERITED_TRAIT
-        self
       when nil, DEFAULT_TRAIT
-        @trait == DEFAULT_TRAIT ? self : Key.new(type: @type, trait: DEFAULT_TRAIT)
+        self
       else
         trait == @trait ? self : Key.new(type: @type, trait: trait)
       end
-    end
-
-    def trait?
-      @trait != DEFAULT_TRAIT
     end
   end
 end

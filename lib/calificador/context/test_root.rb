@@ -3,18 +3,12 @@
 using Calificador::Util::CoreExtensions
 
 module Calificador
-  module Spec
-    class TestRoot < ExamineContext
-      class Dsl < ExamineContext::Dsl
-        def body(&block)
-          delegate.body = block
-        end
-      end
-
+  module Context
+    class TestRoot < InstanceContext
       attr_accessor :test_class
 
       def initialize(test_class:, subject_key:, description:, &body)
-        super(parent: nil, subject_key: subject_key, description: description, overrides: {})
+        super(parent: nil, subject_key: subject_key, description: description)
 
         @test_class = test_class
         @body = body
@@ -28,10 +22,6 @@ module Calificador
         setup_body
 
         super
-      end
-
-      def create_result(subject:, arguments:, options:, block:)
-        subject
       end
 
       protected

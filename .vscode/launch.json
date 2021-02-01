@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Run Example Test",
+            "name": "Current test",
             "type": "Ruby",
             "request": "launch",
             "cwd": "${workspaceRoot}",
@@ -14,19 +14,7 @@
             },
             "args": ["-v"],
             "useBundler": true,
-            "program": "test/util/core_extensions_test.rb"
-        },
-        {
-            "name": "Run Example Demo",
-            "type": "Ruby",
-            "request": "launch",
-            "cwd": "${workspaceRoot}",
-            "env": {
-                "RUBYLIB": "test"
-            },
-            "args": ["demo/test.md", "-v"],
-            "useBundler": true,
-            "program": "bin/qed"
+            "program": "${file}"
         }
-    ]
+   ]
 }

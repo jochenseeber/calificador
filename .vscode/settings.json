@@ -1,7 +1,4 @@
 {
     "ruby.format": "rubocop",
-    "ruby.useBundler": true,
-    "files.associations": {
-        "*.brickie": "ruby"
-    }
+    "ruby.useBundler": true
 }

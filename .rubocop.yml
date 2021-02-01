@@ -12,6 +12,9 @@ Layout/EndAlignment:
   EnforcedStyleAlignWith: variable
 Layout/LineLength:
   Max: 120
+Lint/AmbiguousBlockAssociation:
+  Exclude:
+    - test/**/*  
 Lint/MixedRegexpCaptureTypes:
   Enabled: yes
 Layout/SpaceAroundMethodCallOperator:
@@ -31,6 +34,11 @@ Lint/Void:
   - embedded/**/*
 Metrics/AbcSize:
   Max: 30
+Metrics/BlockLength:
+  Exclude:
+  - test/**/*
+  - generated/**/*
+  - embedded/**/*
 Metrics/ClassLength:
   Max: 200
 Metrics/CyclomaticComplexity:
@@ -74,6 +82,8 @@ Style/RedundantRegexpEscape:
   Enabled: yes
 Style/RegexpLiteral:
   EnforcedStyle: percent_r
+Style/Semicolon:
+  AllowAsExpressionSeparator: yes  
 Style/SlicingWithRange:
   Enabled: yes
 Style/StringLiterals:
