@@ -23,18 +23,9 @@ module Calificador
         end
 
         def apply(context:)
-          factory = context.override_factory(key: @key)
+          key = @key.with_default(context.subject_key)
+          factory = context.override_factory(key: key)
           factory.init_with = @function
-        end
-
-        def with_default(trait:)
-          raise ArgumentError, "Trait must be a #{Symbol}" unless trait.is_a?(Symbol)
-          
-          if @key.default_trait? && trait != @key.trait
-            self.class.new(key: @key.with(trait), function: @function)
-          else
-            self
-          end
         end
       end
     end

@@ -46,8 +46,9 @@ module Calificador
 
     alias_method :eql?, :==
 
-    def to_s
-      @trait == NO_TRAIT ? @type.to_s : "#{@type} (#{@trait})"
+    def to_s(base_module: nil)
+      type_name = @type.name_without_common_parents(base: base_module)
+      @trait == NO_TRAIT ? type_name : "#{type_name} (#{@trait})"
     end
 
     alias_method :inspect, :to_s
@@ -58,6 +59,14 @@ module Calificador
         self
       else
         trait == @trait ? self : Key.new(type: @type, trait: trait)
+      end
+    end
+
+    def with_default(key)
+      if @trait == DEFAULT_TRAIT && @trait != key.trait
+        Key[@type, key.trait]
+      else
+        self
       end
     end
   end

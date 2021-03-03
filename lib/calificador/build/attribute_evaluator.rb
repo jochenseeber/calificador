@@ -27,14 +27,15 @@ module Calificador
 
             @evaluator.value(name: name)
           else
-            @environment_proxy.send(name, *arguments, **keywords, &block)
+            @environment_proxy.__send__(name, *arguments, **keywords, &block)
           end
         end
       end
 
       attr_reader :attributes, :values, :environment
 
-      def initialize(environment:)
+      def initialize(key:, environment:)
+        @key = key
         @environment = environment
         @attributes = {}
         @values = {}
@@ -60,8 +61,11 @@ module Calificador
           @values[name] = EVALUATING
 
           begin
-            config = @attributes.fetch(name).config
-            @values[name] = evaluate(&config)
+            attribute = @attributes.fetch(name) do
+              raise KeyError, "Could not find attribute '#{name}' for factory #{@key}"
+            end
+
+            @values[name] = evaluate(&attribute.config)
           rescue StandardError
             @values.delete(name)
             raise

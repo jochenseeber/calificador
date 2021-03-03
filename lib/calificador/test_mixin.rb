@@ -116,13 +116,13 @@ module Calificador
       end
 
       def __default_type_description(subject_key:)
-        subject_key.type.name_without_common_parents(self)
+        subject_key.type.name_without_common_parents(base: self)
       end
 
       def __default_instance_description(subject_key:)
         description = StringIO.new
 
-        description << subject_key.type.name_without_common_parents(self)
+        description << subject_key.type.name_without_common_parents(base: self)
         description << "(" << subject_key.trait.to_s.gsub("_", " ") << ")" if subject_key.trait?
 
         description.string

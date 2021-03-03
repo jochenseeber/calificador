@@ -23,14 +23,14 @@ module Calificador
 
       class Proxy < Util::ProxyObject
         extend ::Forwardable
-  
+
         def initialize(environment:)
           super()
 
           @environment = environment
           @test_instance = environment.test_instance
         end
-  
+
         def assert(*arguments, &body)
           if arguments.empty?
             @environment.assert do
@@ -40,9 +40,9 @@ module Calificador
             @test_instance.assert(*arguments, &body)
           end
         end
-  
+
         ruby2_keywords :assert
-  
+
         def refute(*arguments, &body)
           if arguments.empty?
             @environment.refute do
@@ -52,30 +52,32 @@ module Calificador
             @test_instance.refute(*arguments, &body)
           end
         end
-  
+
         ruby2_keywords :refute
-  
+
         def_delegator :@environment, :subject
         def_delegator :@environment, :create
-  
+        def_delegator :@environment, :properties
+        def_delegator :@environment, :arguments
+
         def _
           Context::TestEnvironment::DEFAULT_VALUE
         end
-  
+
         protected
-  
+
         def __respond_to_missing?(name:, include_all:)
           @environment.operation_name ||
             !@environment.lookup_named_factory(name: name).nil? ||
             @test_instance.respond_to?(name)
         end
-  
+
         def __method_missing(name:, arguments:, keywords:, block:)
           if name == @environment.operation_name
             @environment.call_operation(*arguments, **keywords, &block)
           else
             factory = @environment.lookup_named_factory(name: name)
-  
+
             if factory
               @environment.create_object(key: factory.key)
             elsif @test_instance.respond_to?(name)
@@ -85,14 +87,12 @@ module Calificador
             end
           end
         end
-  
-        ruby2_keywords :method_missing
-  
+
         def singleton_method_added(name) # rubocop:disable Lint/MissingSuper
           ::Kernel.raise "Adding methods (#{name}) inside test methods is not supported"
         end
       end
-  
+
       attr_reader :test_instance, :proxy
 
       def initialize(parent:, test_instance:, overrides: [])
@@ -244,10 +244,11 @@ module Calificador
               raise "Please provide a default value for positional argument ##{index} of '#{operation_name}'"
             end
 
-            default_arguments[index].call
-          else
-            argument
+            config = default_arguments[index]
+            argument = proxy.instance_exec(&config)
           end
+
+          argument
         end
 
         keywords = keywords.map do |name, value|
@@ -256,10 +257,11 @@ module Calificador
               raise "Please provide a default value for keyword argument '#{name}' of '#{operation_name}'"
             end
 
-            [name, default_arguments[name].call]
-          else
-            [name, value]
+            config = default_arguments[name]
+            value = proxy.instance_exec(&config)
           end
+
+          [name, value]
         end.to_h
 
         [arguments, keywords, block]

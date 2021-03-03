@@ -1,10 +1,25 @@
 # frozen_string_literal: true
 
 require "minitest"
+require "singleton"
 
 module Calificador
   class Assertor < Util::ProxyObject
-    def initialize(handler:, negated: false, block: nil)
+    class DefaultHandler
+      include Singleton
+
+      def assert(condition, message)
+        raise ::Minitest::Assertion, message unless condition
+      end
+
+      def refute(condition, message) 
+        raise ::Minitest::Assertion, message if condition
+      end
+    end
+
+    def initialize(handler: DefaultHandler.instance, negated: false, block: nil)
+      super()
+
       @handler = handler
       @negated = negated ? true : false
       @block = block

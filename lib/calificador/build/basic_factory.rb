@@ -104,7 +104,7 @@ module Calificador
       end
 
       def create(environment:)
-        evaluator = AttributeEvaluator.new(environment: environment)
+        evaluator = AttributeEvaluator.new(key: @key, environment: environment)
 
         collect_attributes(evaluator: evaluator)
 
@@ -143,7 +143,9 @@ module Calificador
       end
 
       def lookup_attribute(name:)
-        @attributes[name] || @parent&.lookup_attribute(name: name)
+        @attributes.fetch(name) do
+          @parent&.lookup_attribute(name: name)
+        end
       end
 
       def dsl

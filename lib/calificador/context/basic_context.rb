@@ -48,7 +48,7 @@ module Calificador
             when :trait
               arguments.subject_key = Key[arguments.subject_key.type, value]
             when :overrides
-              arguments.overrides << value.with_default(trait: arguments.subject_key.trait || Key::NO_TRAIT)
+              arguments.overrides << value
             when :init
               arguments.overrides << Override::FactoryOverride.new(key: arguments.subject_key, function: value)
             else
@@ -261,7 +261,7 @@ module Calificador
           names: %i[type trait description init overrides]
         )
 
-        arguments.description ||= arguments.subject_key.to_s
+        arguments.description ||= arguments.subject_key.to_s(base_module: test_class)
 
         context = Context::InstanceContext.new(
           parent: self,

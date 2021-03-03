@@ -22,14 +22,8 @@ module Calificador
       def method_missing(name, *arguments, **keywords, &block)
         if name.start_with?("__")
           super(name, *arguments, **keywords, &block)
-        elsif __respond_to_missing?(name: name, include_all: true)
-          __method_missing(name: name, arguments: arguments, keywords: keywords, block: block)
-        elsif ::Kernel.respond_to?(name)
-          ::Kernel.send(name, *arguments, **keywords, &block)
-        elsif FALLBACK_METHODS.include?(name)
-          __send__(:"__#{name}", *arguments, **keywords, &block)
         else
-          super(name, *arguments, **keywords, &block)
+          __method_missing(name: name, arguments: arguments, keywords: keywords, block: block)
         end
       end
 
@@ -56,7 +50,13 @@ module Calificador
       end
 
       def __method_missing(name:, arguments:, keywords:, block:)
-        ::Kernel.raise ::NoMethodError, "undefined name `#{name}' for #{__inspect}"
+        if ::Kernel.respond_to?(name)
+          ::Kernel.send(name, *arguments, **keywords, &block)
+        elsif FALLBACK_METHODS.include?(name)
+          __send__(:"__#{name}", *arguments, **keywords, &block)
+        else
+          ::Kernel.raise ::NoMethodError, "undefined name `#{name}' for #{__class}"
+        end
       end
     end
   end

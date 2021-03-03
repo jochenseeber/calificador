@@ -23,7 +23,10 @@ module Calificador
 
           def __method_missing(name:, arguments:, keywords:, block:)
             ::Kernel.raise ::ArgumentError, "Property method '#{name}' cannot have arguments" unless arguments.empty?
-            ::Kernel.raise ::ArgumentError, "Property method '#{name}' must have a block for the property value" unless block
+
+            unless block
+              ::Kernel.raise ::ArgumentError, "Property method '#{name}' must have a block for the property value"
+            end
 
             @override.add_attribute(name: name, value: block)
           end
@@ -50,18 +53,9 @@ module Calificador
         end
 
         def apply(context:)
-          factory = context.override_factory(key: @key)
+          key = @key.with_default(context.subject_key)
+          factory = context.override_factory(key: key)
           factory.add_overrides(attributes)
-        end
-
-        def with_default(trait:)
-          raise ArgumentError, "Trait must be a #{Symbol}" unless trait.is_a?(Symbol)
-
-          if @key.default_trait? && trait != @key.trait
-            self.class.new(key: @key.with(trait), attributes: @attributes)
-          else
-            self
-          end
         end
       end
     end

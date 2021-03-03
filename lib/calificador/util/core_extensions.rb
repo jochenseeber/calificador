@@ -99,7 +99,7 @@ module Calificador
         def parent_name
           if !instance_variable_defined?(:@__calificador_parent_name) || @__calificador_parent_name.nil?
             @__calificador_parent_name = if %r{(?<parent_name>\A.*)::} =~ name
-              parent_name # %r{#<} =~ parent_name ? Nil.instance : parent_name
+              parent_name
             else
               Nil.instance
             end
@@ -108,15 +108,15 @@ module Calificador
           @__calificador_parent_name.unmask_nil
         end
 
-        def name_without_common_parents(other)
-          result = name
+        def name_without_common_parents(base:)
+          path = name&.split("::")
 
-          if result
-            other_path = other.name&.split("::")
-            result = result.split("::").remove_common_prefix(other_path).join("::") if other_path
+          result = if path
+            base_path = base&.name&.split("::")
+            path.remove_common_prefix(base_path).join("::") if base_path
           end
 
-          result
+          result || name
         end
       end
 
