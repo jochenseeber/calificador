@@ -64,6 +64,14 @@ module Calificador
           Context::TestEnvironment::DEFAULT_VALUE
         end
 
+        def call(*arguments, **keywords, &block)
+          @environment.call_operation(*arguments, **keywords, &block)
+        end
+
+        def result
+          @environment.result
+        end
+
         protected
 
         def __respond_to_missing?(name:, include_all:)
@@ -136,13 +144,19 @@ module Calificador
 
         @result = if effective_arguments.empty?
           if effective_options.empty?
-            subject.send(operation_name, &block)
+            subject.__send__(operation_name, &block)
           else
-            subject.send(operation_name, **effective_options, &effective_block)
+            subject.__send__(operation_name, **effective_options, &effective_block)
           end
         else
-          subject.send(operation_name, *effective_arguments, **effective_options, &effective_block)
+          subject.__send__(operation_name, *effective_arguments, **effective_options, &effective_block)
         end
+      end
+
+      def result
+        raise StandardError, "Method under test was not called yet, so there is no result" if @result == MISSING
+
+        @result
       end
 
       def create(type, trait = Key::NO_TRAIT)
