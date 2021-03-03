@@ -43,8 +43,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency "zeitwerk", "~> 2.3"
 
   spec.add_development_dependency "bundler", "~> 2.1"
-  spec.add_development_dependency "calificador", "~> 0.2.0.dev"
-  spec.add_development_dependency "coveralls", "= 0.8.23.js"
   spec.add_development_dependency "debase", "~> 0.2"
   spec.add_development_dependency "qed", "~> 2.9"
   spec.add_development_dependency "rake", "~> 13.0"
