@@ -3,8 +3,6 @@
 require "minitest"
 require "forwardable"
 
-using Calificador::Util::CoreExtensions
-
 module Calificador
   # Mixin for unit tests
   module TestMixin

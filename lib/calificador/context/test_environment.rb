@@ -2,8 +2,6 @@
 
 require "singleton"
 
-using Calificador::Util::CoreExtensions
-
 module Calificador
   module Context
     # Environment to run test method

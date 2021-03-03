@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "calificador/util/core_extensions"
 require "minitest"
 require "pathname"
 require "zeitwerk"
@@ -9,8 +10,6 @@ loader.setup
 
 # Main module
 module Calificador
-  using Calificador::Util::CoreExtensions
-
   MISSING = Util::Missing.instance
 
   BASE_DIR = Pathname(__FILE__).expand_path.dirname

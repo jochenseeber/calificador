@@ -3,8 +3,6 @@
 require "stringio"
 require "calificador/test_base"
 
-using Calificador::Util::CoreExtensions
-
 module Calificador
   module Util
     class CallFormatterTest < Calificador::Test

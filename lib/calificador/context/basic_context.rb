@@ -3,8 +3,6 @@
 require "forwardable"
 require "ostruct"
 
-using Calificador::Util::CoreExtensions
-
 module Calificador
   module Context
     class BasicContext

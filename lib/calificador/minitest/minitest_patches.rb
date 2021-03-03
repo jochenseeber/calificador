@@ -2,8 +2,6 @@
 
 require "minitest/test"
 
-using Calificador::Util::CoreExtensions
-
 module Calificador
   module Minitest
     # Patches to minitest classes

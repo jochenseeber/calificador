@@ -2,8 +2,6 @@
 
 require "calificador/test_base"
 
-using Calificador::Util::CoreExtensions
-
 module Calificador
   module Context
     module Override

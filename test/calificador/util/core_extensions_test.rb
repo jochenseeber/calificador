@@ -2,84 +2,90 @@
 
 require "calificador/test_base"
 
-using Calificador::Util::CoreExtensions
-
 module Calificador
   module Util
     class CoreExtensionsTest < Calificador::Test
-      operation :map_call_arguments, args { arguments { [] }; keywords { {} } } do
-        with "positional arguments", args { signature { [%i[req a], %i[opt b], %i[req c]] } } do
-          must "omit excess arguments" do
-            assert { map_call_arguments(signature: _, arguments: [1, 2, 3, 4], keywords: _) } == [[1, 2, 3], {}]
+      examine Proc do
+        operation :map_call_arguments, args { arguments { [] }; keywords { {} } } do
+          with "positional arguments", -> { ->(a, b = 2, c) {} } do
+            must "omit excess arguments" do
+              assert { map_call_arguments(arguments: [1, 2, 3, 4], keywords: _) } == [[1, 2, 3], {}]
+            end
+
+            must "omit excess arguments" do
+              assert { map_call_arguments(arguments: [1, 2, 3, 4], keywords: _) } == [[1, 2, 3], {}]
+            end
+
+            must "raise error if argument is missing" do
+              assert { map_call_arguments(arguments: [1], keywords: _) }.raises?(ArgumentError)
+            end
+
+            must "map optional argument if present" do
+              assert { map_call_arguments(arguments: [1, 2, 3], keywords: _) } == [[1, 2, 3], {}]
+            end
+
+            must "omit optional argument if missing" do
+              assert { map_call_arguments(arguments: [1, 2], keywords: _) } == [[1, 2], {}]
+            end
           end
 
-          must "omit excess arguments" do
-            assert { map_call_arguments(signature: _, arguments: [1, 2, 3, 4], keywords: _) } == [[1, 2, 3], {}]
+          with "splat", -> { ->(a, *b) {} } do
+            must "map remaining arguments if present" do
+              assert { map_call_arguments(arguments: [1, 2, 3], keywords: _) } == [[1, 2, 3], {}]
+            end
+
+            must "omit remaining arguments if missing" do
+              assert { map_call_arguments(arguments: [1], keywords: _) } == [[1], {}]
+            end
           end
 
-          must "raise error if argument is missing" do
-            assert { map_call_arguments(signature: _, arguments: [1], keywords: _) }.raises?(ArgumentError)
+          with "keyword arguments", -> { ->(a:, b: 2, c:) {} } do
+            must "omit excess arguments" do
+              assert do
+                map_call_arguments(arguments: _, keywords: { a: 1, b: 2, c: 3, d: 4 })
+              end == [[], { a: 1, b: 2, c: 3 }]
+            end
+
+            must "raise error if arguments are missing" do
+              assert { map_call_arguments(arguments: _, keywords: { a: 1, b: 2 }) }.raises?(ArgumentError)
+            end
+
+            must "map optional arguments if present" do
+              assert do
+                map_call_arguments(arguments: _, keywords: { a: 1, b: 2, c: 3 })
+              end == [[], { a: 1, b: 2, c: 3 }]
+            end
+
+            must "omit optional arguments if missing" do
+              assert do
+                map_call_arguments(arguments: _, keywords: { a: 1, c: 3 })
+              end == [[], { a: 1, c: 3 }]
+            end
           end
 
-          must "map optional argument if present" do
-            assert { map_call_arguments(signature: _, arguments: [1, 2, 3], keywords: _) } == [[1, 2, 3], {}]
+          with "double splat", -> { ->(a:, **b) {} } do
+            must "map remaining arguments if present" do
+              assert do
+                map_call_arguments(arguments: _, keywords: { a: 1, b: 2, c: 3 })
+              end == [[], { a: 1, b: 2, c: 3 }]
+            end
+
+            must "omit remaining arguments if missing" do
+              assert { map_call_arguments(arguments: _, keywords: { a: 1 }) } == [[], { a: 1 }]
+            end
           end
 
-          must "omit optional argument if missing" do
-            assert { map_call_arguments(signature: _, arguments: [1, 2], keywords: _) } == [[1, 2], {}]
-          end
-        end
-
-        with "splat", args { signature { [%i[req a], %i[rest b]] } } do
-          must "map remaining arguments if present" do
-            assert { map_call_arguments(signature: _, arguments: [1, 2, 3], keywords: _) } == [[1, 2, 3], {}]
+          must "ignore block argument", -> { ->(a, &b) {} } do
+            assert { map_call_arguments(arguments: [1], keywords: _) } == [[1], {}]
           end
 
-          must "omit remaining arguments if missing" do
-            assert { map_call_arguments(signature: _, arguments: [1], keywords: _) } == [[1], {}]
+          must "raise error on invalid signature", -> { ->(a) {} } do
+            subject.define_singleton_method(:parameters) do
+              [%i[invalid a]]
+            end
+
+            assert { map_call_arguments(arguments: _, keywords: _) }.raises?(ArgumentError)
           end
-        end
-
-        with "keyword arguments", args { signature { [%i[keyreq a], %i[key b], %i[keyreq c]] } } do
-          must "omit excess arguments" do
-            assert do
-              map_call_arguments(signature: _, arguments: _, keywords: { a: 1, b: 2, c: 3, d: 4 })
-            end == [[], { a: 1, b: 2, c: 3 }]
-          end
-
-          must "raise error if arguments are missing" do
-            assert { map_call_arguments(signature: _, arguments: _, keywords: { a: 1, b: 2 }) }.raises?(ArgumentError)
-          end
-
-          must "map optional arguments if present" do
-            assert do
-              map_call_arguments(signature: _, arguments: _, keywords: { a: 1, b: 2, c: 3 })
-            end == [[], { a: 1, b: 2, c: 3 }]
-          end
-
-          must "omit optional arguments if missing" do
-            assert { map_call_arguments(signature: _, arguments: _, keywords: { a: 1, c: 3 }) } == [[], { a: 1, c: 3 }]
-          end
-        end
-
-        with "double splat", args { signature { [%i[keyreq a], %i[keyrest b]] } } do
-          must "map remaining arguments if present" do
-            assert do
-              map_call_arguments(signature: _, arguments: _, keywords: { a: 1, b: 2, c: 3 })
-            end == [[], { a: 1, b: 2, c: 3 }]
-          end
-
-          must "omit remaining arguments if missing" do
-            assert { map_call_arguments(signature: _, arguments: _, keywords: { a: 1 }) } == [[], { a: 1 }]
-          end
-        end
-
-        must "ignore block argument" do
-          assert { map_call_arguments(signature: [%i[req a], %i[block b]], arguments: [1], keywords: _) } == [[1], {}]
-        end
-
-        must "raise error on invalid signature" do
-          assert { map_call_arguments(signature: [%i[invalid a]], arguments: _, keywords: _) }.raises?(ArgumentError)
         end
       end
 
@@ -196,7 +202,6 @@ module Calificador
       end
 
       examine Array, -> { [1, 2, 3] } do
-        # TODO: Allow factory lambda
         operation :remove_common_prefix do
           where "arrays have common prefix" do
             must "return array without prefix when arrays have same length" do

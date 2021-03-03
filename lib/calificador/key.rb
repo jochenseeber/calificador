@@ -2,8 +2,6 @@
 
 require "minitest"
 
-using Calificador::Util::CoreExtensions
-
 module Calificador
   # Test subject key
   class Key

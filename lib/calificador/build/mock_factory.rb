@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-using Calificador::Util::CoreExtensions
-
 module Calificador
   module Build
     # Factory for mock objects
