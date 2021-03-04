@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    calificador (0.2.0)
+    calificador (0.3.0.dev)
       minitest (~> 5.14)
       zeitwerk (~> 2.3)
 
