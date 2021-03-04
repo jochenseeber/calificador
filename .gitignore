@@ -10,6 +10,7 @@
 /generated/
 /log/
 /pkg/
+/sorbet/rbi/hidden-definitions/errors.txt
 /tmp/
 /vendor/bundle/
 \#*\#

@@ -1,3 +1,4 @@
+# typed: false
 # frozen_string_literal: true
 
 require "calificador/test_base"
@@ -24,11 +25,11 @@ module Calificador
     type Key do
       operation :new do
         must "raise error if type is not a Module" do
-          assert { Key.new(type: :bad) }.raises?(ArgumentError)
+          assert { Key.new(type: :bad) }.raises?(TypeError)
         end
 
         must "raise error if trait is not a Symbol" do
-          assert { Key.new(type: String, trait: "bad") }.raises?(ArgumentError)
+          assert { Key.new(type: String, trait: "bad") }.raises?(TypeError)
         end
       end
 

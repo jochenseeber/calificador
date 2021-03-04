@@ -1,3 +1,4 @@
+# typed: strict
 # frozen_string_literal: true
 
 require "minitest"
@@ -5,6 +6,6 @@ require "minitest"
 module Calificador
   # Base class for unit tests
   class Test < ::Minitest::Test
-    prepend TestMixin
+    include TestMixin
   end
 end

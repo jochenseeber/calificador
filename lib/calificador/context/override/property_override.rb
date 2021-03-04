@@ -1,3 +1,4 @@
+# typed: strict
 # frozen_string_literal: true
 
 module Calificador
@@ -6,50 +7,70 @@ module Calificador
       # Property override
       class PropertyOverride < BasicOverride
         # Configuration proxy to configure overrides
-        class ConfigProxy < Util::ProxyObject
+        class ConfigProxy < Util::OvertProxyObject
+          sig { params(override: PropertyOverride).void }
           def initialize(override:)
             super()
 
-            @override = override
+            @override = ::T.let(override, PropertyOverride)
           end
 
           protected
 
+          sig { params(name: ::Symbol, include_all: ::T::Boolean).returns(::T::Boolean) }
           def __respond_to_missing?(name:, include_all:)
-            METHOD_PATTERN =~ name
+            METHOD_PATTERN =~ name.to_s ? true : false
           end
 
-          def __method_missing(name:, arguments:, keywords:, block:)
-            ::Kernel.raise ::ArgumentError, "Property method '#{name}' cannot have arguments" unless arguments.empty?
+          sig do
+            params(
+              name: ::Symbol,
+              arguments: ArgumentArray,
+              keywords: KeywordHash,
+              block: ::T.nilable(::Proc)
+            ).returns(::BasicObject)
+          end
+          def __method_missing(name:, arguments:, keywords:, block: nil)
+            if METHOD_PATTERN =~ name.to_s
+              ::Kernel.raise ::ArgumentError, "Property method '#{name}' cannot have arguments" unless arguments.empty?
 
-            unless block
-              ::Kernel.raise ::ArgumentError, "Property method '#{name}' must have a block for the property value"
+              unless block
+                ::Kernel.raise ::ArgumentError, "Property method '#{name}' must have a block for the property value"
+              end
+
+              @override.add_attribute(name: name, value: ::T.cast(block, InitProc))
+            else
+              super
             end
-
-            @override.add_attribute(name: name, value: block)
           end
         end
 
-        attr_reader :key, :attributes
+        sig { returns(Key) }
+        attr_reader :key
 
+        sig { returns(PropertyHash) }
+        attr_reader :attributes
+
+        sig { params(key: Key, attributes: PropertyHash).void }
         def initialize(key:, attributes: {})
-          raise ArgumentError, "Key must be a #{Key}, not '#{key}' (#{key.class})" unless key.is_a?(Key)
-
           super()
 
           @key = key
-          @attributes = attributes.dup
+          @attributes = T.let(attributes.dup, PropertyHash)
         end
 
+        sig { params(name: Symbol, value: InitProc).void }
         def add_attribute(name:, value:)
           @attributes[name] = value
         end
 
+        sig { params(block: T.proc.void).returns(T.self_type) }
         def config(&block)
-          ConfigProxy.new(override: self).instance_exec(&block)
+          T.unsafe(ConfigProxy.new(override: self)).instance_exec(&block)
           self
         end
 
+        sig { override.params(context: BasicContext).void }
         def apply(context:)
           key = @key.with_default(context.subject_key)
           factory = context.override_factory(key: key)

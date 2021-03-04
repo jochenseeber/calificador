@@ -1,3 +1,4 @@
+# typed: false
 # frozen_string_literal: true
 
 require "calificador/test_base"
@@ -9,7 +10,7 @@ module Calificador
       class BasicOverrideTest < Calificador::Test
         operation :apply do
           must "raise unimplemented error" do
-            assert { apply(context: nil) }.raises?(NotImplementedError)
+            assert { apply(context: nil) }.raises?(RuntimeError)
           end
         end
       end

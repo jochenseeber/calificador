@@ -40,6 +40,7 @@ Gem::Specification.new do |spec|
   spec.executables = spec.files.filter { |f| File.dirname(f) == "cmd" && File.file?(f) }.map { |f| File.basename(f) }
 
   spec.add_dependency "minitest", "~> 5.14"
+  spec.add_dependency "sorbet-runtime", "~> 0.5"
   spec.add_dependency "zeitwerk", "~> 2.3"
 
   spec.add_development_dependency "bundler", "~> 2.1"
@@ -50,5 +51,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rubocop-rake", ">= 0.5.1"
   spec.add_development_dependency "ruby-debug-ide", "~> 0.7"
   spec.add_development_dependency "simplecov", "~> 0.18"
+  spec.add_development_dependency "sorbet", "~> 0.5"
   spec.add_development_dependency "yard", "~> 0.9"
 end

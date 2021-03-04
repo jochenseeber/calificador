@@ -1,3 +1,4 @@
+# typed: false
 # frozen_string_literal: true
 
 require "calificador/test_base"
@@ -10,11 +11,11 @@ module Calificador
         type do
           operation :new do
             must "raise error if key is not a key" do
-              assert { new(key: "test", function: -> { "test" }) }.raises?(ArgumentError)
+              assert { new(key: "test", function: -> { "test" }) }.raises?(TypeError)
             end
 
             must "raise error if function is not a proc" do
-              assert { new(key: Key[String], function: "test") }.raises?(ArgumentError)
+              assert { new(key: Key[String], function: "test") }.raises?(TypeError)
             end
           end
         end

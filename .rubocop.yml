@@ -14,7 +14,7 @@ Layout/LineLength:
   Max: 120
 Lint/AmbiguousBlockAssociation:
   Exclude:
-    - test/**/*  
+    - test/**/*
 Lint/MixedRegexpCaptureTypes:
   Enabled: yes
 Layout/SpaceAroundMethodCallOperator:
@@ -51,6 +51,8 @@ Metrics/ParameterLists:
   Max: 10
 Metrics/PerceivedComplexity:
   Max: 10
+Style/AccessorGrouping:
+  Enabled: no
 Style/Alias:
   EnforcedStyle: prefer_alias_method
 Style/BlockDelimiters:
@@ -83,7 +85,7 @@ Style/RedundantRegexpEscape:
 Style/RegexpLiteral:
   EnforcedStyle: percent_r
 Style/Semicolon:
-  AllowAsExpressionSeparator: yes  
+  AllowAsExpressionSeparator: yes
 Style/SlicingWithRange:
   Enabled: yes
 Style/StringLiterals:

@@ -1,3 +1,4 @@
+# typed: strict
 # frozen_string_literal: true
 
 module Calificador
@@ -5,9 +6,10 @@ module Calificador
     module Override
       # Base class for overrides
       class BasicOverride
-        def apply(context:)
-          raise NotImplementedError, "Subclasses must implement"
-        end
+        abstract!
+
+        sig { abstract.params(context: BasicContext).void }
+        def apply(context:); end
       end
     end
   end

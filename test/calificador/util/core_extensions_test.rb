@@ -1,3 +1,4 @@
+# typed: false
 # frozen_string_literal: true
 
 require "calificador/test_base"
@@ -9,11 +10,11 @@ module Calificador
         operation :map_call_arguments, args { arguments { [] }; keywords { {} } } do
           with "positional arguments", -> { ->(a, b = 2, c) {} } do
             must "omit excess arguments" do
-              assert { map_call_arguments(arguments: [1, 2, 3, 4], keywords: _) } == [[1, 2, 3], {}]
+              assert { map_call_arguments(arguments: [1, 2, 3, 4], keywords: _) } == [1, 2, 3]
             end
 
             must "omit excess arguments" do
-              assert { map_call_arguments(arguments: [1, 2, 3, 4], keywords: _) } == [[1, 2, 3], {}]
+              assert { map_call_arguments(arguments: [1, 2, 3, 4], keywords: _) } == [1, 2, 3]
             end
 
             must "raise error if argument is missing" do
@@ -21,21 +22,21 @@ module Calificador
             end
 
             must "map optional argument if present" do
-              assert { map_call_arguments(arguments: [1, 2, 3], keywords: _) } == [[1, 2, 3], {}]
+              assert { map_call_arguments(arguments: [1, 2, 3], keywords: _) } == [1, 2, 3]
             end
 
             must "omit optional argument if missing" do
-              assert { map_call_arguments(arguments: [1, 2], keywords: _) } == [[1, 2], {}]
+              assert { map_call_arguments(arguments: [1, 2], keywords: _) } == [1, 2]
             end
           end
 
           with "splat", -> { ->(a, *b) {} } do
             must "map remaining arguments if present" do
-              assert { map_call_arguments(arguments: [1, 2, 3], keywords: _) } == [[1, 2, 3], {}]
+              assert { map_call_arguments(arguments: [1, 2, 3], keywords: _) } == [1, 2, 3]
             end
 
             must "omit remaining arguments if missing" do
-              assert { map_call_arguments(arguments: [1], keywords: _) } == [[1], {}]
+              assert { map_call_arguments(arguments: [1], keywords: _) } == [1]
             end
           end
 
@@ -43,7 +44,7 @@ module Calificador
             must "omit excess arguments" do
               assert do
                 map_call_arguments(arguments: _, keywords: { a: 1, b: 2, c: 3, d: 4 })
-              end == [[], { a: 1, b: 2, c: 3 }]
+              end == [{ a: 1, b: 2, c: 3 }]
             end
 
             must "raise error if arguments are missing" do
@@ -53,13 +54,13 @@ module Calificador
             must "map optional arguments if present" do
               assert do
                 map_call_arguments(arguments: _, keywords: { a: 1, b: 2, c: 3 })
-              end == [[], { a: 1, b: 2, c: 3 }]
+              end == [{ a: 1, b: 2, c: 3 }]
             end
 
             must "omit optional arguments if missing" do
               assert do
                 map_call_arguments(arguments: _, keywords: { a: 1, c: 3 })
-              end == [[], { a: 1, c: 3 }]
+              end == [{ a: 1, c: 3 }]
             end
           end
 
@@ -67,16 +68,16 @@ module Calificador
             must "map remaining arguments if present" do
               assert do
                 map_call_arguments(arguments: _, keywords: { a: 1, b: 2, c: 3 })
-              end == [[], { a: 1, b: 2, c: 3 }]
+              end == [{ a: 1, b: 2, c: 3 }]
             end
 
             must "omit remaining arguments if missing" do
-              assert { map_call_arguments(arguments: _, keywords: { a: 1 }) } == [[], { a: 1 }]
+              assert { map_call_arguments(arguments: _, keywords: { a: 1 }) } == [{ a: 1 }]
             end
           end
 
           must "ignore block argument", -> { ->(a, &b) {} } do
-            assert { map_call_arguments(arguments: [1], keywords: _) } == [[1], {}]
+            assert { map_call_arguments(arguments: [1], keywords: _) } == [1]
           end
 
           must "raise error on invalid signature", -> { ->(a) {} } do

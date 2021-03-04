@@ -1,3 +1,4 @@
+# typed: strict
 # frozen_string_literal: true
 
 require "singleton"
@@ -10,6 +11,7 @@ module Calificador
       class DefaultValue
         include Singleton
 
+        sig { returns(String) }
         def to_s
           "<default>"
         end
@@ -17,37 +19,40 @@ module Calificador
         alias_method :inspect, :to_s
       end
 
-      DEFAULT_VALUE = DefaultValue.instance
+      DEFAULT_VALUE = T.let(DefaultValue.instance, DefaultValue)
 
-      class Proxy < Util::ProxyObject
+      class Proxy < Util::OvertProxyObject
         extend ::Forwardable
 
+        sig { params(environment: TestEnvironment).void }
         def initialize(environment:)
           super()
 
           @environment = environment
-          @test_instance = environment.test_instance
+          @test_instance = ::T.let(environment.test_instance, TestType)
         end
 
+        sig { params(arguments: BasicObject, body: ::T.nilable(::Proc)).returns(BasicObject) }
         def assert(*arguments, &body)
           if arguments.empty?
-            @environment.assert do
-              instance_exec(&body)
-            end
+            proxy = self
+            assertion = -> { ::T.unsafe(proxy).instance_exec(&body) } if body
+            @environment.assert(&assertion)
           else
-            @test_instance.assert(*arguments, &body)
+            ::T.unsafe(@test_instance).assert(*arguments, &body)
           end
         end
 
         ruby2_keywords :assert
 
+        sig { params(arguments: BasicObject, body: ::T.nilable(::Proc)).returns(BasicObject) }
         def refute(*arguments, &body)
           if arguments.empty?
-            @environment.refute do
-              instance_exec(&body)
-            end
+            proxy = self
+            assertion = -> { ::T.unsafe(proxy).instance_exec(&body) } if body
+            @environment.refute(&assertion)
           else
-            @test_instance.refute(*arguments, &body)
+            ::T.unsafe(@test_instance).refute(*arguments, &body)
           end
         end
 
@@ -58,52 +63,76 @@ module Calificador
         def_delegator :@environment, :properties
         def_delegator :@environment, :arguments
 
+        sig { returns(DefaultValue) }
         def _
           Context::TestEnvironment::DEFAULT_VALUE
         end
 
+        sig { params(arguments: ArgumentArray, keywords: KeywordHash, block: T.nilable(Proc)).returns(BasicObject) }
         def call(*arguments, **keywords, &block)
-          @environment.call_operation(*arguments, **keywords, &block)
+          T.unsafe(@environment).call_operation(arguments: arguments, keywords: keywords, block: block)
         end
 
+        ruby2_keywords :call
+
+        sig { returns(BasicObject) }
         def result
           @environment.result
         end
 
         protected
 
+        sig { params(name: ::Symbol, include_all: ::T::Boolean).returns(::T::Boolean) }
         def __respond_to_missing?(name:, include_all:)
-          @environment.operation_name ||
-            !@environment.lookup_named_factory(name: name).nil? ||
-            @test_instance.respond_to?(name)
+          if @environment.operation_name ||
+             !@environment.lookup_named_factory(name: name).nil? ||
+             @test_instance.respond_to?(name)
+            true
+          else
+            false
+          end
         end
 
-        def __method_missing(name:, arguments:, keywords:, block:)
+        sig do
+          params(
+            name: ::Symbol,
+            arguments: ArgumentArray,
+            keywords: KeywordHash,
+            block: ::T.nilable(::Proc)
+          ).returns(::BasicObject)
+        end
+        def __method_missing(name:, arguments:, keywords:, block: nil)
           if name == @environment.operation_name
-            @environment.call_operation(*arguments, **keywords, &block)
+            @environment.call_operation(arguments: arguments, keywords: keywords, block: block)
           else
             factory = @environment.lookup_named_factory(name: name)
 
             if factory
               @environment.create_object(key: factory.key)
             elsif @test_instance.respond_to?(name)
-              @test_instance.send(name, *arguments, **keywords, &block)
+              ::T.unsafe(@test_instance).__send__(name, *arguments, **keywords, &block)
             else
               super
             end
           end
         end
 
+        ruby2_keywords :__method_missing
+
+        ::T::Sig::WithoutRuntime.sig { params(name: Symbol).void }
         def singleton_method_added(name) # rubocop:disable Lint/MissingSuper
           ::Kernel.raise "Adding methods (#{name}) inside test methods is not supported"
         end
       end
 
-      attr_reader :test_instance, :proxy
+      sig { returns(TestType) }
+      attr_reader :test_instance
 
+      sig { returns(Proxy) }
+      attr_reader :proxy
+
+      sig { params(parent: TestMethod, test_instance: TestType, overrides: T::Array[Override::BasicOverride]).void }
       def initialize(parent:, test_instance:, overrides: [])
-        raise "Parent must be a #{TestMethod}" unless parent.is_a?(TestMethod)
-
         super(
           parent: parent,
           subject_key: parent.subject_key,
@@ -112,13 +141,14 @@ module Calificador
         )
 
         @test_instance = test_instance
-        @subject = MISSING
-        @result = MISSING
-        @created_objects = {}
-        @current_assertor = nil
-        @proxy = Proxy.new(environment: self)
+        @subject = T.let(MISSING, T.nilable(BasicObject))
+        @result = T.let(MISSING, T.nilable(BasicObject))
+        @created_objects = T.let({}, T::Hash[Key, BasicObject])
+        @current_assertor = T.let(nil, T.nilable(Assertor))
+        @proxy = T.let(Proxy.new(environment: self), Proxy)
       end
 
+      sig { params(value: BasicObject).returns(BasicObject) }
       def subject(value = MISSING)
         if value.equal?(MISSING)
           if @subject.equal?(MISSING)
@@ -133,44 +163,51 @@ module Calificador
         @subject
       end
 
-      def call_operation(*arguments, **keywords, &block)
-        effective_arguments, effective_options, effective_block = collect_arguments(
-          arguments: arguments,
-          keywords: keywords,
-          block: block
-        )
+      sig { params(arguments: ArgumentArray, keywords: KeywordHash, block: T.nilable(Proc)).returns(BasicObject) }
+      def call_operation(arguments:, keywords:, block: nil)
+        effective_arguments, effective_keywords = collect_arguments(arguments: arguments, keywords: keywords)
 
-        @result = if effective_arguments.empty?
-          if effective_options.empty?
-            subject.__send__(operation_name, &block)
-          else
-            subject.__send__(operation_name, **effective_options, &effective_block)
-          end
-        else
-          subject.__send__(operation_name, *effective_arguments, **effective_options, &effective_block)
+        operation_name = self.operation_name || raise("No parent context defines an operation")
+
+        @result = case [effective_arguments.empty?, effective_keywords.empty?]
+          in [false, false]
+            T.unsafe(subject).__send__(operation_name, *effective_arguments, **effective_keywords, &block)
+          in [false, true]
+            T.unsafe(subject).__send__(operation_name, *effective_arguments, &block)
+          in [true, false]
+            T.unsafe(subject).__send__(operation_name, **effective_keywords, &block)
+          in [true, true]
+            T.unsafe(subject).__send__(operation_name, &block)
         end
       end
 
+      ruby2_keywords :call_operation
+
+      sig { returns(BasicObject) }
       def result
         raise StandardError, "Method under test was not called yet, so there is no result" if @result == MISSING
 
         @result
       end
 
+      sig { params(type: Module, trait: T.nilable(Symbol)).returns(BasicObject) }
       def create(type, trait = Key::NO_TRAIT)
         create_object(key: Key[type, trait])
       end
 
+      sig { params(block: T.nilable(T.proc.void)).returns(Assertor) }
       def assert(&block)
         @current_assertor&.__check_triggered
         @current_assertor = Assertor.new(handler: @test_instance, block: block)
       end
 
+      sig { params(block: T.nilable(T.proc.void)).returns(Assertor) }
       def refute(&block)
         @current_assertor&.__check_triggered
         @current_assertor = Assertor.new(handler: @test_instance, negated: true, block: block)
       end
 
+      sig { params(block: T.proc.void).returns(Override::ArgumentOverride) }
       def arguments(&block)
         raise "Cannot override properties after method under test has been called" unless @result == EMPTY
 
@@ -179,6 +216,13 @@ module Calificador
         end
       end
 
+      sig do
+        params(
+          type: T.nilable(Module),
+          trait: T.nilable(Symbol),
+          block: T.proc.void
+        ).returns(Override::PropertyOverride)
+      end
       def properties(type = nil, trait = Key::DEFAULT_TRAIT, &block)
         raise "Cannot override properties after objects have been created" unless @created_objects.empty?
 
@@ -187,6 +231,7 @@ module Calificador
         end
       end
 
+      sig { params(key: Key).returns(BasicObject) }
       def create_object(key:)
         @created_objects.fetch(key) do
           factory = lookup_factory(key: key)
@@ -196,18 +241,20 @@ module Calificador
           else
             raise(KeyError, "No factory found for #{key}") if key.trait?
 
-            if key.type.include?(Singleton)
-              key.type.instance
-            elsif key.type.is_a?(Class)
-              method = key.type.method(:new)
+            key_type = key.type
+
+            if key_type <= Singleton
+              T.unsafe(key_type).instance
+            elsif key_type.is_a?(Class)
+              method = key_type.method(:new)
 
               if method.required_arguments?
                 raise KeyError, "Class #{key} has no default constructor, cannot create without factory"
               end
 
-              key.type.send(:new)
-            elsif key.type.is_a?(Module)
-              key.type
+              key_type.send(:new)
+            elsif key_type.is_a?(Module)
+              key_type
             else
               raise(KeyError, "Cannot create object for #{key} without factory")
             end
@@ -215,15 +262,19 @@ module Calificador
         end
       end
 
+      sig { params(error: T::Boolean).void }
       def done(error:)
         @current_assertor&.__check_triggered unless error
         @current_assertor = nil
       end
 
+      sig { void }
       def run_test
-        if parent.expected_to_fail
+        test_method = T.cast(parent, TestMethod)
+
+        if test_method.expected_to_fail
           passed = begin
-            @proxy.instance_exec(&parent.body)
+            T.unsafe(@proxy).instance_exec(&test_method.body)
             true
           rescue ::Minitest::Assertion => e
             @test_instance.pass(e.message)
@@ -232,7 +283,7 @@ module Calificador
 
           @test_instance.flunk("Expected test to fail") if passed
         else
-          @proxy.instance_exec(&parent.body)
+          T.unsafe(@proxy).instance_exec(&test_method.body)
         end
 
         done(error: false)
@@ -241,13 +292,15 @@ module Calificador
         raise
       end
 
+      sig { returns(String) }
       def to_s
         "#{self.class.name}(#{@test_instance.name})"
       end
 
       protected
 
-      def collect_arguments(arguments:, keywords:, block:)
+      sig { params(arguments: ArgumentArray, keywords: KeywordHash).returns([ArgumentArray, KeywordHash]) }
+      def collect_arguments(arguments:, keywords:)
         default_arguments = operation_arguments
 
         arguments = arguments.each_with_index.map do |argument, index|
@@ -257,7 +310,7 @@ module Calificador
             end
 
             config = default_arguments[index]
-            argument = proxy.instance_exec(&config)
+            argument = T.unsafe(proxy).instance_exec(&config)
           end
 
           argument
@@ -270,13 +323,13 @@ module Calificador
             end
 
             config = default_arguments[name]
-            value = proxy.instance_exec(&config)
+            value = T.unsafe(proxy).instance_exec(&config)
           end
 
           [name, value]
         end.to_h
 
-        [arguments, keywords, block]
+        [arguments, keywords]
       end
     end
   end

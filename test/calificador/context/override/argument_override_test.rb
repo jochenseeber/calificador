@@ -1,3 +1,4 @@
+# typed: false
 # frozen_string_literal: true
 
 require "calificador/test_base"
@@ -19,7 +20,7 @@ module Calificador
 
         operation :add_attribute do
           must "add attribute" do
-            config =  -> { "test " }
+            config = -> { "test " }
             add_attribute(name: :test, value: config)
             assert { subject.attributes.fetch(:test) } == config
           end

@@ -1,3 +1,4 @@
+# typed: false
 # frozen_string_literal: true
 
 require "calificador/test_base"
@@ -26,7 +27,7 @@ class ScopeTest < Calificador::Test
 
     must "be able to access environment method" do
       x = subject
-      assert { x }.is_a?(Object)
+      assert { x.is_a?(Object) } == true
     end
 
     must "be able to access root variable" do
@@ -65,7 +66,7 @@ class ScopeTest < Calificador::Test
     end
 
     must "be able to access environment method" do
-      assert { subject }.is_a?(Object)
+      assert { subject.is_a?(Object) } == true
     end
 
     must "be able to access root variable" do
