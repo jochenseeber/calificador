@@ -26,7 +26,7 @@ GEM
     rainbow (3.0.0)
     rake (13.0.3)
     regexp_parser (2.1.1)
-    rexml (3.2.4)
+    rexml (3.2.5)
     rubocop (1.11.0)
       parallel (~> 1.10)
       parser (>= 3.0.0.0)
@@ -53,12 +53,14 @@ GEM
       sorbet-static (= 0.5.6322)
     sorbet-runtime (0.5.6322)
     sorbet-static (0.5.6322-universal-darwin-19)
+    sorbet-static (0.5.6322-x86_64-linux)
     unicode-display_width (2.0.0)
     yard (0.9.26)
     zeitwerk (2.4.2)
 
 PLATFORMS
   x86_64-darwin-19
+  x86_64-linux
 
 DEPENDENCIES
   bundler (~> 2.1)
